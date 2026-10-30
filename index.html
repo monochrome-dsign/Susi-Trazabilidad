@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SUSI — Trazabilidad de fábrica</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/JsBarcode/3.11.5/JsBarcode.all.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600;1,9..144,800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue-900:#0C2D6B;
+  --blue-700:#1448B5;
+  --blue-600:#1A56DB;
+  --blue-500:#2D6EF0;
+  --blue-100:#E3ECFD;
+  --cream:#F6F2E8;
+  --card:#FFFFFF;
+  --ink:#1C1A14;
+  --terracotta:#8A4B2E;
+  --terracotta-bg:#F2E2D6;
+  --rose:#F7E8E1;
+  --crimson:#A8412E;
+  --crimson-bg:#F5DFD8;
+  --teal:#3E6F52;
+  --teal-bg:#E2EBE2;
+  --amber:#A6680F;
+  --amber-bg:#F7EAD3;
+  --steel:#79705F;
+  --line:#E5DECC;
+  --line-dark:rgba(255,255,255,.16);
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Inter',sans-serif;background:var(--cream);color:var(--ink);}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.display{font-family:'Fraunces',serif;}
+
+#app{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sidebar{width:236px;flex-shrink:0;background:linear-gradient(180deg,var(--blue-700),var(--blue-900));color:#EFF3FF;display:flex;flex-direction:column;}
+.brand{padding:24px 20px 18px;border-bottom:1px solid var(--line-dark);display:flex;align-items:center;gap:10px;}
+.brand .rooster{width:22px;height:22px;flex-shrink:0;color:#fff;opacity:.92;}
+.brand .mark{font-family:'Fraunces',serif;font-style:italic;font-weight:800;font-size:24px;letter-spacing:.2px;color:#fff;line-height:1;}
+.brand .sub{font-size:10.5px;color:#C7D6F9;margin-top:3px;letter-spacing:.5px;text-transform:uppercase;}
+.brand-wrap{display:flex;flex-direction:column;}
+.nav{flex:1;padding:16px 10px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:999px;color:#D3DEF7;font-size:13.5px;cursor:pointer;margin-bottom:3px;}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff;}
+.nav-item.active{background:#fff;color:var(--blue-700);font-weight:600;}
+.nav-ico{width:18px;text-align:center;font-size:13px;opacity:.85;}
+.nav-item.active .nav-ico{opacity:1;}
+.nav-foot{padding:16px 20px;border-top:1px solid var(--line-dark);font-size:11px;color:#AEC0EE;line-height:1.6;}
+
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{background:var(--card);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+.topbar .kicker{font-family:'Fraunces',serif;font-style:italic;font-size:11px;color:var(--terracotta);letter-spacing:.3px;margin-bottom:2px;}
+.topbar h1{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:0;}
+.topbar .crumb{font-size:12px;color:var(--steel);margin-top:3px;}
+.tsearch{display:flex;align-items:center;gap:8px;background:var(--cream);border:1px solid var(--line);border-radius:999px;padding:8px 14px;width:340px;}
+.tsearch input{border:none;background:none;outline:none;font-family:'IBM Plex Mono',monospace;font-size:13px;width:100%;color:var(--ink);}
+.tsearch button{border:none;background:var(--blue-600);color:#fff;font-size:12px;padding:7px 14px;border-radius:999px;cursor:pointer;font-family:'Inter';font-weight:600;}
+.content{padding:26px 28px 60px;overflow-y:auto;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* Generic */
+h2.title{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:0 0 4px;}
+p.lead{color:var(--steel);font-size:13.5px;margin:0 0 20px;}
+.row{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+
+.btn{border:1px solid var(--ink);background:var(--ink);color:#fff;padding:9px 18px;border-radius:999px;font-size:13px;cursor:pointer;font-family:'Inter';font-weight:600;}
+.btn:hover{background:#000;}
+.btn.ghost{background:var(--cream);color:var(--ink);border:1px solid var(--line);}
+.btn.ghost:hover{border-color:var(--steel);}
+.btn.danger{background:var(--crimson);border-color:var(--crimson);}
+.btn.small{padding:6px 12px;font-size:12px;}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
+.kpi .lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--steel);margin-bottom:8px;}
+.kpi .val{font-family:'Fraunces',serif;font-size:27px;font-weight:600;}
+.kpi .sub{font-size:12px;color:var(--steel);margin-top:4px;}
+.kpi.alert{border-left:3px solid var(--crimson);}
+.kpi.alert .val{color:var(--crimson);}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+.card h3{font-family:'Fraunces',serif;font-size:15.5px;font-weight:600;margin:0 0 14px;display:flex;align-items:center;justify-content:space-between;}
+
+.divider{display:flex;align-items:center;gap:14px;margin:6px 0 18px;}
+.divider .line{flex:1;height:1px;background:var(--line);}
+.divider .label{font-family:'Fraunces',serif;font-style:italic;font-size:13px;color:var(--terracotta);white-space:nowrap;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--steel);padding:8px 10px;border-bottom:1px solid var(--line);font-weight:600;}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+td.code{font-family:'IBM Plex Mono',monospace;font-size:12px;}
+
+.badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:999px;font-weight:600;}
+.badge.ok{background:var(--teal-bg);color:var(--teal);}
+.badge.warn{background:var(--amber-bg);color:var(--amber);}
+.badge.danger{background:var(--crimson-bg);color:var(--crimson);}
+.badge.neutral{background:var(--terracotta-bg);color:var(--terracotta);}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--steel);}
+.field input,.field select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:'Inter';background:var(--cream);}
+.field input:focus,.field select:focus{outline:none;border-color:var(--blue-600);}
+.field.span2{grid-column:span 2;}
+
+.consume-row{display:grid;grid-template-columns:1fr 110px 28px;gap:8px;margin-bottom:8px;align-items:center;}
+.rm-btn{background:none;border:1px solid var(--line);border-radius:999px;width:28px;height:34px;cursor:pointer;color:var(--crimson);}
+
+/* Chain visual */
+.chain-wrap{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:8px 0 14px;}
+.chain-node{min-width:168px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;flex-shrink:0;}
+.chain-node .tag{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--steel);margin-bottom:6px;}
+.chain-node .name{font-weight:600;font-size:13.5px;margin-bottom:3px;}
+.chain-node .detail{font-size:11.5px;color:var(--steel);line-height:1.5;}
+.chain-node.mp{border-top:3px solid var(--terracotta);}
+.chain-node.prod{border-top:3px solid var(--blue-600);}
+.chain-node.pt{border-top:3px solid var(--amber);}
+.chain-node.exp{border-top:3px solid var(--steel);}
+.chain-link{display:flex;align-items:center;justify-content:center;width:34px;flex-shrink:0;color:var(--steel);font-size:16px;}
+
+.label-card{background:var(--card);border:2px dashed var(--blue-100);border-radius:12px;padding:20px;width:340px;text-align:center;}
+.label-card .susimark{font-family:'Fraunces',serif;font-style:italic;font-weight:800;font-size:13px;color:var(--blue-600);margin-bottom:8px;letter-spacing:.3px;}
+.label-card .pname{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin-bottom:2px;}
+.label-card .pmeta{font-size:11.5px;color:var(--steel);margin-bottom:12px;}
+.label-grid{display:flex;flex-wrap:wrap;gap:18px;}
+
+.alertbox{background:var(--amber-bg);border:1px solid #E4C788;border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--amber);margin-bottom:10px;display:flex;gap:8px;align-items:center;}
+.alertbox.danger{background:var(--crimson-bg);border-color:#E3B6AB;color:var(--crimson);}
+.empty{text-align:center;color:var(--steel);font-size:13px;padding:30px 0;}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(12,15,25,.55);align-items:center;justify-content:center;z-index:50;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--card);border-radius:14px;padding:24px 26px;width:520px;max-height:85vh;overflow-y:auto;}
+.modal h3{font-family:'Fraunces',serif;font-weight:600;margin:0 0 16px;font-size:17px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+
+@media print{
+  .sidebar,.topbar,.row .btn,#printArea ~ *{display:none !important;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="sidebar">
+    <div class="brand">
+      <svg class="rooster" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M44 14c2-4 6-5 9-3-1 3-3 5-6 6"/>
+        <path d="M18 30c-2-9 4-17 14-17 8 0 13 5 14 12 4 1 7 4 7 8 0 3-2 5-5 6l-2 9c-1 5-5 8-10 8H22c-4 0-7-3-7-7v-6"/>
+        <path d="M15 32l-7 2 6 4"/>
+        <circle cx="38" cy="20" r="1.6" fill="currentColor" stroke="none"/>
+        <path d="M20 38v9M28 40v9M36 40v8"/>
+      </svg>
+      <div class="brand-wrap">
+        <div class="mark">SUSI</div>
+        <div class="sub">Trazabilidad de fábrica</div>
+      </div>
+    </div>
+    <div class="nav" id="nav">
+      <div class="nav-item active" data-section="dashboard"><span class="nav-ico">▣</span> Panel general</div>
+      <div class="nav-item" data-section="materia"><span class="nav-ico">◧</span> Materia prima</div>
+      <div class="nav-item" data-section="produccion"><span class="nav-ico">⚙</span> Producción / lotes</div>
+      <div class="nav-item" data-section="productos"><span class="nav-ico">◫</span> Productos terminados</div>
+      <div class="nav-item" data-section="trazabilidad"><span class="nav-ico">⛓</span> Trazabilidad</div>
+      <div class="nav-item" data-section="etiquetas"><span class="nav-ico">▤</span> Etiquetas / códigos</div>
+    </div>
+    <div class="nav-foot">Cocinados y Precocinados S.L.<br>Fabricantes desde 1992<br><a href="#" onclick="setupScreen();return false;" style="color:#C7D6F9">Cambiar conexión</a></div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="kicker" id="pageKicker">Control de producción</div>
+        <h1 id="pageTitle">Panel general</h1>
+        <div class="crumb" id="pageCrumb">Resumen de la planta</div>
+      </div>
+      <div class="tsearch">
+        <span class="mono" style="font-size:13px;color:var(--steel);">⛓</span>
+        <input id="quickSearch" placeholder="Buscar lote o código de barras… ej. PR-2026-0628-001" />
+        <button onclick="quickTrace()">Rastrear</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="section active" id="sec-dashboard"></div>
+
+      <!-- MATERIA PRIMA -->
+      <div class="section" id="sec-materia"></div>
+
+      <!-- PRODUCCION -->
+      <div class="section" id="sec-produccion"></div>
+
+      <!-- PRODUCTOS -->
+      <div class="section" id="sec-productos"></div>
+
+      <!-- TRAZABILIDAD -->
+      <div class="section" id="sec-trazabilidad"></div>
+
+      <!-- ETIQUETAS -->
+      <div class="section" id="sec-etiquetas"></div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBody"></div>
+</div>
+
+<script>
+/* ============== DATOS (Google Sheets vía Apps Script) ============== */
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+let materias=[], producciones=[], productos=[], expediciones=[];
+const CFG = {url:localStorage.getItem('susi_url')||'', key:localStorage.getItem('susi_key')||''};
+async function api(action, data){
+  const r = action==='getAll'
+    ? await fetch(CFG.url+'?key='+encodeURIComponent(CFG.key))
+    : await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action,key:CFG.key,data})});
+  const j = await r.json();
+  if(j.error) throw new Error(j.error);
+  ({materias,producciones,productos,expediciones} = j);
+}
+function setupScreen(msg){
+  openModal(`<h3>Conectar con la hoja de cálculo</h3>${msg?`<div class="alertbox danger">${msg}</div>`:''}
+  <div class="form-grid"><div class="field span2"><label>URL de la aplicación web (Apps Script)</label><input id="c-url" value="${CFG.url}" placeholder="https://script.google.com/macros/s/.../exec"></div>
+  <div class="field span2"><label>Clave de acceso</label><input id="c-key" type="password" value="${CFG.key}"></div></div>
+  <div class="modal-actions"><button class="btn" onclick="saveCfg()">Conectar</button></div>`);
+}
+function saveCfg(){
+  localStorage.setItem('susi_url',document.getElementById('c-url').value.trim());
+  localStorage.setItem('susi_key',document.getElementById('c-key').value.trim());
+  location.reload();
+}
+
+/* ============== HELPERS ============== */
+function fmtDate(s){ const d=new Date(s); return d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function daysLeft(s){ const d=new Date(s); return Math.round((d-TODAY)/86400000); }
+function caducidadBadge(s){
+  const dl = daysLeft(s);
+  if(dl<0) return `<span class="badge danger">Caducado</span>`;
+  if(dl<=3) return `<span class="badge danger">${dl} días</span>`;
+  if(dl<=10) return `<span class="badge warn">${dl} días</span>`;
+  return `<span class="badge ok">${dl} días</span>`;
+}
+function todayStr(){ return new Date(TODAY.getTime()-TODAY.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function findMP(id){ return materias.find(m=>m.id===id); }
+function findPR(id){ return producciones.find(p=>p.id===id); }
+function findPT(id){ return productos.find(p=>p.id===id); }
+
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.section===name));
+  const titles = {dashboard:['Control de producción','Panel general','Resumen de la planta'], materia:['Entradas de proveedor','Materia prima','Stock de proveedores en cámara y almacén'], produccion:['Fabricación diaria','Producción / lotes','Lotes de fabricación y consumo de materia prima'], productos:['Listo para expedir','Productos terminados','Stock listo para expedición con código de lote'], trazabilidad:['Cadena de custodia','Trazabilidad','Busca un lote y reconstruye la cadena completa'], etiquetas:['Impresión de planta','Etiquetas / códigos','Generación de etiquetas con código de barras por lote']};
+  document.getElementById('pageKicker').textContent = titles[name][0];
+  document.getElementById('pageTitle').textContent = titles[name][1];
+  document.getElementById('pageCrumb').textContent = titles[name][2];
+  render();
+}
+document.getElementById('nav').addEventListener('click', e=>{
+  const item = e.target.closest('.nav-item');
+  if(item) showSection(item.dataset.section);
+});
+
+function openModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+
+/* ============== RENDER: DASHBOARD ============== */
+function renderDashboard(){
+  const stockTotal = materias.reduce((a,m)=>a+m.cantidad,0);
+  const alertasMP = materias.filter(m=>daysLeft(m.caducidad)<=3);
+  const alertasPT = productos.filter(p=>daysLeft(p.caducidad)<=3);
+  const produccionHoy = producciones.filter(p=>p.fecha===todayStr()).reduce((a,p)=>a+p.cantidad,0);
+
+  let html = `
+  <div class="kpi-grid">
+    <div class="kpi"><div class="lbl">Lotes de producción activos</div><div class="val">${producciones.length}</div><div class="sub">Histórico registrado</div></div>
+    <div class="kpi"><div class="lbl">Stock materia prima</div><div class="val">${stockTotal} kg</div><div class="sub">${materias.length} lotes en cámara / almacén</div></div>
+    <div class="kpi"><div class="lbl">Producción de hoy</div><div class="val">${produccionHoy} kg</div><div class="sub">${producciones.filter(p=>p.fecha===todayStr()).length} lotes fabricados</div></div>
+    <div class="kpi ${(alertasMP.length+alertasPT.length)?'alert':''}"><div class="lbl">Alertas de caducidad</div><div class="val">${alertasMP.length+alertasPT.length}</div><div class="sub">≤ 3 días para caducar</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Avisos de caducidad próxima</h3>
+    ${(alertasMP.length+alertasPT.length)===0 ? '<div class="empty">No hay materias primas ni productos próximos a caducar.</div>' : ''}
+    ${alertasMP.map(m=>`<div class="alertbox danger">⚠ Materia prima <strong class="mono">${m.lote}</strong> — ${m.producto} caduca en ${daysLeft(m.caducidad)} días (${fmtDate(m.caducidad)}), ${m.cantidad} kg en ${m.camara}.</div>`).join('')}
+    ${alertasPT.map(p=>`<div class="alertbox danger">⚠ Producto terminado <strong class="mono">${p.barcode}</strong> — ${p.nombre} caduca en ${daysLeft(p.caducidad)} días (${fmtDate(p.caducidad)}), ${p.cantidad} ${p.unidad} en ${p.almacen}.</div>`).join('')}
+  </div>
+
+  <div class="card">
+    <h3>Última actividad de producción</h3>
+    <table>
+      <tr><th>Lote producción</th><th>Producto</th><th>Fecha</th><th>Operario</th><th>Cantidad</th></tr>
+      ${producciones.slice().reverse().slice(0,5).map(p=>`<tr><td class="code">${p.lote}</td><td>${p.producto}</td><td>${fmtDate(p.fecha)}</td><td>${p.operario}</td><td>${p.cantidad} ${p.unidad}</td></tr>`).join('')}
+    </table>
+  </div>
+  `;
+  document.getElementById('sec-dashboard').innerHTML = html;
+}
+
+/* ============== RENDER: MATERIA PRIMA ============== */
+function renderMateria(){
+  let html = `
+  <div class="row">
+    <p class="lead" style="margin:0;">Entradas de proveedor registradas por lote, con cámara y caducidad.</p>
+    <button class="btn" onclick="openMateriaForm()">+ Registrar entrada</button>
+  </div>
+  <div class="card">
+    <table>
+      <tr><th>Lote</th><th>Producto</th><th>Proveedor</th><th>Cantidad</th><th>Entrada</th><th>Caducidad</th><th>Ubicación</th><th></th></tr>
+      ${materias.map(m=>`<tr>
+        <td class="code">${m.lote}</td>
+        <td>${m.producto}</td>
+        <td>${m.proveedor}</td>
+        <td>${m.cantidad} ${m.unidad}</td>
+        <td>${fmtDate(m.entrada)}</td>
+        <td>${caducidadBadge(m.caducidad)}</td>
+        <td>${m.camara}</td>
+        <td><button class="btn ghost small" onclick="traceLot('${m.lote}')">Trazar</button></td>
+      </tr>`).join('')}
+    </table>
+  </div>`;
+  document.getElementById('sec-materia').innerHTML = html;
+}
+
+function openMateriaForm(){
+  openModal(`
+    <h3>Registrar entrada de materia prima</h3>
+    <div class="form-grid">
+      <div class="field span2"><label>Producto</label><input id="f-producto" placeholder="Ej. Carne de cerdo magra"></div>
+      <div class="field span2"><label>Proveedor</label><input id="f-proveedor" placeholder="Ej. Cárnicas del Sur S.L."></div>
+      <div class="field"><label>Cantidad (kg)</label><input id="f-cantidad" type="number" min="0" step="0.1"></div>
+      <div class="field"><label>Cámara / ubicación</label><input id="f-camara" placeholder="Ej. Cámara 1 (2°C)"></div>
+      <div class="field"><label>Fecha de entrada</label><input id="f-entrada" type="date" value="${todayStr()}"></div>
+      <div class="field"><label>Fecha de caducidad</label><input id="f-caducidad" type="date"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="saveMateria()">Guardar lote</button>
+    </div>
+  `);
+}
+async function saveMateria(){
+  const producto = document.getElementById('f-producto').value.trim();
+  const proveedor = document.getElementById('f-proveedor').value.trim();
+  const cantidad = parseFloat(document.getElementById('f-cantidad').value);
+  const camara = document.getElementById('f-camara').value.trim() || 'Sin asignar';
+  const entrada = document.getElementById('f-entrada').value || todayStr();
+  const caducidad = document.getElementById('f-caducidad').value;
+  if(!producto || !proveedor || !cantidad || !caducidad){ alert('Completa producto, proveedor, cantidad y caducidad.'); return; }
+  try{ await api('addMateria',{producto,proveedor,cantidad,camara,entrada,caducidad}); closeModal(); showSection('materia'); }
+  catch(e){ alert(e.message); }
+}
+
+/* ============== RENDER: PRODUCCION ============== */
+function renderProduccion(){
+  let html = `
+  <div class="row">
+    <p class="lead" style="margin:0;">Cada lote de fabricación consume materia prima trazada y genera un nuevo lote de producto.</p>
+    <button class="btn" onclick="openProduccionForm()">+ Nuevo lote de producción</button>
+  </div>
+  <div class="card">
+    <table>
+      <tr><th>Lote producción</th><th>Producto</th><th>Fecha</th><th>Turno</th><th>Operario</th><th>Cantidad</th><th>Materia prima consumida</th><th></th></tr>
+      ${producciones.slice().reverse().map(p=>`<tr>
+        <td class="code">${p.lote}</td>
+        <td>${p.producto}</td>
+        <td>${fmtDate(p.fecha)}</td>
+        <td>${p.turno}</td>
+        <td>${p.operario}</td>
+        <td>${p.cantidad} ${p.unidad}</td>
+        <td>${p.consumos.map(c=>`<span class="mono" style="font-size:11px;">${c.lote}</span> (${c.cantidad}kg)`).join(', ')}</td>
+        <td><button class="btn ghost small" onclick="traceLot('${p.lote}')">Trazar</button></td>
+      </tr>`).join('')}
+    </table>
+  </div>`;
+  document.getElementById('sec-produccion').innerHTML = html;
+}
+
+let consumeRows = 1;
+function openProduccionForm(){
+  const opciones = materias.map(m=>`<option value="${m.id}">${m.lote} — ${m.producto} (${m.cantidad} kg disp.)</option>`).join('');
+  consumeRows = 1;
+  openModal(`
+    <h3>Nuevo lote de producción</h3>
+    <div class="form-grid">
+      <div class="field span2"><label>Producto a fabricar</label><input id="f-pprod" placeholder="Ej. Flamenquín de jamón y queso"></div>
+      <div class="field"><label>Cantidad producida (kg)</label><input id="f-pcant" type="number" min="0" step="0.1"></div>
+      <div class="field"><label>Fecha</label><input id="f-pfecha" type="date" value="${todayStr()}"></div>
+      <div class="field"><label>Turno</label><select id="f-pturno"><option>Mañana</option><option>Tarde</option><option>Noche</option></select></div>
+      <div class="field"><label>Operario responsable</label><input id="f-poperario" placeholder="Nombre del operario"></div>
+    </div>
+    <div style="margin-top:16px;">
+      <label style="font-size:12px;color:var(--steel);">Materia prima consumida</label>
+      <div id="consumeWrap" style="margin-top:8px;">
+        <div class="consume-row"><select class="cmp">${opciones}</select><input class="ccant" type="number" placeholder="kg" min="0" step="0.1"><span></span></div>
+      </div>
+      <button class="btn ghost small" type="button" onclick="addConsumeRow()">+ Añadir materia prima</button>
+    </div>
+    <div style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px;">
+      <label style="font-size:12px;color:var(--steel);">Producto terminado resultante</label>
+      <div class="form-grid" style="margin-top:8px;">
+        <div class="field"><label>Formato / presentación</label><input id="f-formato" placeholder="Ej. Bandeja 500 g"></div>
+        <div class="field"><label>Unidades producidas</label><input id="f-unidades" type="number" min="0"></div>
+        <div class="field"><label>Caducidad del producto</label><input id="f-ptcad" type="date"></div>
+        <div class="field"><label>Almacén destino</label><input id="f-ptalm" placeholder="Ej. Cámara PT-A"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="saveProduccion()">Generar lote y producto</button>
+    </div>
+  `);
+}
+function addConsumeRow(){
+  const opciones = materias.map(m=>`<option value="${m.id}">${m.lote} — ${m.producto} (${m.cantidad} kg disp.)</option>`).join('');
+  const wrap = document.getElementById('consumeWrap');
+  const row = document.createElement('div');
+  row.className='consume-row';
+  row.innerHTML = `<select class="cmp">${opciones}</select><input class="ccant" type="number" placeholder="kg" min="0" step="0.1"><button class="rm-btn" type="button" onclick="this.parentElement.remove()">×</button>`;
+  wrap.appendChild(row);
+}
+async function saveProduccion(){
+  const producto = document.getElementById('f-pprod').value.trim();
+  const cantidad = parseFloat(document.getElementById('f-pcant').value);
+  const fecha = document.getElementById('f-pfecha').value || todayStr();
+  const turno = document.getElementById('f-pturno').value;
+  const operario = document.getElementById('f-poperario').value.trim();
+  const formato = document.getElementById('f-formato').value.trim();
+  const unidades = parseFloat(document.getElementById('f-unidades').value);
+  const ptcad = document.getElementById('f-ptcad').value;
+  const ptalm = document.getElementById('f-ptalm').value.trim() || 'Sin asignar';
+
+  if(!producto || !cantidad || !operario || !formato || !unidades || !ptcad){ alert('Completa todos los campos obligatorios del lote y del producto resultante.'); return; }
+
+  const rows = document.querySelectorAll('#consumeWrap .consume-row');
+  const consumos = [];
+  for(const r of rows){
+    const mpId = r.querySelector('.cmp').value;
+    const cant = parseFloat(r.querySelector('.ccant').value);
+    if(!cant || cant<=0) continue;
+    const mp = findMP(mpId);
+    if(!mp){ continue; }
+    if(cant > mp.cantidad){ alert(`Stock insuficiente de ${mp.producto} (${mp.lote}): disponible ${mp.cantidad} kg, solicitado ${cant} kg.`); throw new Error('stock'); }
+    consumos.push({mpId, lote:mp.lote, cantidad:cant});
+  }
+  if(consumos.length===0){ alert('Indica al menos una materia prima consumida.'); return; }
+
+  try{
+    await api('addProduccion',{producto,cantidad,fecha,turno,operario,formato,unidades,caducidad:ptcad,almacen:ptalm,consumos});
+    closeModal(); showSection('produccion');
+  }catch(e){ alert(e.message); }
+}
+
+/* ============== RENDER: PRODUCTOS ============== */
+function renderProductos(){
+  let html = `
+  <div class="row"><p class="lead" style="margin:0;">Productos terminados, listos para expedición, identificados con código de barras único por lote.</p><button class="btn" onclick="openExpedicionForm()">+ Registrar expedición</button></div>
+  <div class="card">
+    <table>
+      <tr><th>Código barras</th><th>Producto</th><th>Formato</th><th>Lote producción</th><th>Stock</th><th>Envasado</th><th>Caducidad</th><th>Almacén</th><th></th></tr>
+      ${productos.slice().reverse().map(p=>{ const pr=findPR(p.prId); return `<tr>
+        <td class="code">${p.barcode}</td>
+        <td>${p.nombre}</td>
+        <td>${p.formato}</td>
+        <td class="code">${pr?pr.lote:'—'}</td>
+        <td>${p.cantidad} ${p.unidad}</td>
+        <td>${fmtDate(p.envasado)}</td>
+        <td>${caducidadBadge(p.caducidad)}</td>
+        <td>${p.almacen}</td>
+        <td><button class="btn ghost small" onclick="traceLot('${p.barcode}')">Trazar</button> ${p.cantidad>0?`<button class="btn small" onclick="openExpedicionForm('${p.id}')">Expedir</button>`:'<span class="badge neutral">Agotado</span>'}</td>
+      </tr>`; }).join('')}
+    </table>
+  </div>
+  <div class="card"><h3>Historial de expediciones</h3>
+  ${expediciones.length===0 ? '<div class="empty">Aún no se ha expedido ningún producto.</div>' : `<table>
+    <tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Lote producción</th><th>Cantidad</th><th>Destino</th><th></th></tr>
+    ${expediciones.slice().reverse().map(e=>{ const p=findPT(e.ptId), pr=p?findPR(p.prId):null; return `<tr>
+      <td>${fmtDate(e.fecha)}</td><td>${e.cliente}</td><td>${p?p.nombre:'—'}</td><td class="code">${pr?pr.lote:'—'}</td>
+      <td>${e.cantidad} ${e.unidad}</td><td>${e.destino||'—'}</td>
+      <td>${p?`<button class="btn ghost small" onclick="traceLot('${p.barcode}')">Trazar</button>`:''}</td></tr>`; }).join('')}
+  </table>`}</div>`;
+  document.getElementById('sec-productos').innerHTML = html;
+}
+
+/* ============== EXPEDICIONES ============== */
+function openExpedicionForm(ptId){
+  const disp = productos.filter(p=>p.cantidad>0);
+  if(!disp.length){ alert('No hay producto terminado en stock.'); return; }
+  const ops = disp.map(p=>{ const pr=findPR(p.prId); return `<option value="${p.id}" ${p.id===ptId?'selected':''}>${p.nombre} — ${pr?pr.lote:''} (${p.cantidad} ${p.unidad} en stock)</option>`; }).join('');
+  openModal(`<h3>Registrar expedición</h3>
+  <div class="form-grid">
+    <div class="field span2"><label>Producto / lote</label><select id="f-xpt">${ops}</select></div>
+    <div class="field span2"><label>Cliente</label><input id="f-xcli" placeholder="Ej. Supermercados Mendoza"></div>
+    <div class="field span2"><label>Destino / dirección de entrega</label><input id="f-xdes" placeholder="Ej. Plataforma logística Sevilla"></div>
+    <div class="field"><label>Cantidad</label><input id="f-xcant" type="number" min="1" step="1"></div>
+    <div class="field"><label>Fecha de salida</label><input id="f-xfecha" type="date" value="${todayStr()}"></div>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveExpedicion()">Registrar salida</button></div>`);
+}
+let enviandoExp = false;
+async function saveExpedicion(){
+  if(enviandoExp) return;
+  const ptId=document.getElementById('f-xpt').value, cliente=document.getElementById('f-xcli').value.trim();
+  const destino=document.getElementById('f-xdes').value.trim(), cantidad=parseFloat(document.getElementById('f-xcant').value);
+  const fecha=document.getElementById('f-xfecha').value||todayStr(), p=findPT(ptId);
+  if(!cliente || !(cantidad>0)){ alert('Indica el cliente y una cantidad válida.'); return; }
+  if(cantidad>p.cantidad){ alert(`Stock insuficiente: quedan ${p.cantidad} ${p.unidad} de ${p.nombre}.`); return; }
+  enviandoExp = true;
+  try{ await api('addExpedicion',{ptId,cliente,destino,cantidad,fecha}); closeModal(); showSection('productos'); }
+  catch(e){ alert(e.message); }
+  finally{ enviandoExp = false; }
+}
+
+/* ============== RENDER: TRAZABILIDAD ============== */
+let lastTrace = '';
+function renderTrazabilidad(){
+  let html = `
+  <p class="lead">Introduce un lote de materia prima, lote de producción o código de barras de producto para reconstruir su cadena de custodia completa.</p>
+  <div class="card">
+    <div style="display:flex;gap:10px;">
+      <input id="traceInput" class="mono" style="flex:1;padding:9px 12px;border:1px solid var(--line);border-radius:6px;" placeholder="Ej. PR-2026-0628-001 / MP-2026-0625-001 / 8410000628011" value="${lastTrace}">
+      <button class="btn" onclick="traceLot(document.getElementById('traceInput').value)">Rastrear</button>
+    </div>
+  </div>
+  <div id="traceResult"></div>
+  `;
+  document.getElementById('sec-trazabilidad').innerHTML = html;
+  if(lastTrace) renderTraceResult(lastTrace);
+}
+
+function quickTrace(){
+  const v = document.getElementById('quickSearch').value.trim();
+  if(!v) return;
+  traceLot(v);
+}
+function traceLot(code){
+  code = code.trim();
+  lastTrace = code;
+  showSection('trazabilidad');
+  document.getElementById('traceInput').value = code;
+  renderTraceResult(code);
+}
+function renderTraceResult(code){
+  const box = document.getElementById('traceResult');
+  // localizar punto de partida
+  let pt = productos.find(p=>p.barcode===code);
+  let pr = pt ? findPR(pt.prId) : producciones.find(p=>p.lote===code);
+  let mpDirect = materias.find(m=>m.lote===code);
+
+  if(!pt && !pr && !mpDirect){
+    box.innerHTML = `<div class="card"><div class="empty">No se ha encontrado ningún lote con el código «${code}». Prueba con un lote de materia prima (MP-…), de producción (PR-…) o un código de barras de producto.</div></div>`;
+    return;
+  }
+
+  if(mpDirect && !pr){
+    // trazar hacia adelante: en qué producciones se usó
+    const usos = producciones.filter(p=>p.consumos.some(c=>c.mpId===mpDirect.id));
+    let chain = `<div class="chain-wrap">
+      <div class="chain-node mp"><div class="tag">Proveedor</div><div class="name">${mpDirect.proveedor}</div><div class="detail">Origen materia prima</div></div>
+      <div class="chain-link">→</div>
+      <div class="chain-node mp"><div class="tag">Materia prima</div><div class="name mono" style="font-size:12px;">${mpDirect.lote}</div><div class="detail">${mpDirect.producto}<br>${mpDirect.cantidad} kg restantes · ${mpDirect.camara}<br>Caduca ${fmtDate(mpDirect.caducidad)}</div></div>`;
+    usos.forEach(u=>{
+      chain += `<div class="chain-link">→</div><div class="chain-node prod"><div class="tag">Producción</div><div class="name mono" style="font-size:12px;">${u.lote}</div><div class="detail">${u.producto}<br>${fmtDate(u.fecha)} · ${u.operario}</div></div>`;
+    });
+    chain += `</div>`;
+    box.innerHTML = `<div class="card"><h3>Cadena de trazabilidad</h3>${chain}${usos.length===0?'<p class="lead" style="margin-top:10px;">Este lote de materia prima aún no se ha utilizado en ningún lote de producción.</p>':''}</div>`;
+    return;
+  }
+
+  if(pr && !pt){ pt = productos.find(p=>p.prId===pr.id); }
+  if(!pr && pt){ pr = findPR(pt.prId); }
+
+  const exps = pt ? expediciones.filter(e=>e.ptId===pt.id) : [];
+
+  let chain = `<div class="chain-wrap">`;
+  pr.consumos.forEach((c,i)=>{
+    const mp = findMP(c.mpId);
+    chain += `<div class="chain-node mp"><div class="tag">Materia prima</div><div class="name mono" style="font-size:12px;">${c.lote}</div><div class="detail">${mp?mp.producto:'—'}<br>Proveedor: ${mp?mp.proveedor:'—'}<br>Consumido: ${c.cantidad} kg</div></div><div class="chain-link">→</div>`;
+  });
+  chain += `<div class="chain-node prod"><div class="tag">Lote de producción</div><div class="name mono" style="font-size:12px;">${pr.lote}</div><div class="detail">${pr.producto}<br>${fmtDate(pr.fecha)} · turno ${pr.turno}<br>Operario: ${pr.operario}<br>${pr.cantidad} kg producidos</div></div>`;
+  if(pt){
+    chain += `<div class="chain-link">→</div><div class="chain-node pt"><div class="tag">Producto terminado</div><div class="name mono" style="font-size:12px;">${pt.barcode}</div><div class="detail">${pt.nombre}<br>${pt.formato}<br>${pt.cantidad} ${pt.unidad} en stock · caduca ${fmtDate(pt.caducidad)}<br>${pt.almacen}</div></div>`;
+  }
+  exps.forEach(e=>{
+    chain += `<div class="chain-link">→</div><div class="chain-node exp"><div class="tag">Expedición</div><div class="name">${e.cliente}</div><div class="detail">${fmtDate(e.fecha)}<br>${e.cantidad} ${e.unidad}<br>${e.destino}</div></div>`;
+  });
+  chain += `</div>`;
+
+  box.innerHTML = `<div class="card"><h3>Cadena de trazabilidad — ${pt?pt.nombre:pr.producto}</h3>${chain}
+    ${exps.length===0 && pt ? '<p class="lead" style="margin-top:10px;">Este producto aún no tiene expediciones registradas; todo el lote permanece en almacén.</p>' : ''}
+  </div>`;
+}
+
+/* ============== RENDER: ETIQUETAS ============== */
+function renderEtiquetas(){
+  let html = `
+  <p class="lead">Genera e imprime la etiqueta de cada lote, con código de barras escaneable y datos de trazabilidad.</p>
+  <div class="label-grid" id="labelGrid">
+    ${productos.slice().reverse().map(p=>{ const pr=findPR(p.prId); return `
+    <div class="label-card">
+      <div class="susimark">SUSI</div>
+      <div class="pname">${p.nombre}</div>
+      <div class="pmeta">${p.formato} · Lote producción ${pr?pr.lote:'—'}<br>Envasado ${fmtDate(p.envasado)} · Caduca ${fmtDate(p.caducidad)}</div>
+      <svg class="barcode" jsbarcode-value="${p.barcode}"></svg>
+      <button class="btn ghost small" style="margin-top:8px;" onclick="printLabel('${p.id}')">Imprimir etiqueta</button>
+    </div>`; }).join('')}
+  </div>
+  <div id="printArea" style="display:none;"></div>
+  `;
+  document.getElementById('sec-etiquetas').innerHTML = html;
+  renderBarcodes();
+}
+function renderBarcodes(){
+  document.querySelectorAll('svg.barcode').forEach(svg=>{
+    try{
+      JsBarcode(svg, svg.getAttribute('jsbarcode-value'), {format:'CODE128', width:1.6, height:46, fontSize:12, margin:6, font:'IBM Plex Mono'});
+    }catch(e){}
+  });
+}
+function printLabel(ptId){
+  const p = findPT(ptId);
+  const pr = findPR(p.prId);
+  const area = document.getElementById('printArea');
+  area.innerHTML = `<div style="text-align:center;padding:40px;">
+    <div style="font-family:'Fraunces',serif;font-style:italic;font-weight:800;color:var(--blue-600);font-size:14px;margin-bottom:10px;letter-spacing:.4px;">SUSI</div>
+    <h2 style="font-family:'Fraunces',serif;margin-bottom:4px;">${p.nombre}</h2>
+    <p style="color:var(--steel);">${p.formato} · Lote producción ${pr.lote}</p>
+    <p style="color:var(--steel);">Envasado: ${fmtDate(p.envasado)} — Caducidad: ${fmtDate(p.caducidad)}</p>
+    <svg id="printBarcode" jsbarcode-value="${p.barcode}"></svg>
+  </div>`;
+  area.style.display='block';
+  JsBarcode('#printBarcode', p.barcode, {format:'CODE128', width:2.4, height:70, fontSize:16, margin:10});
+  window.print();
+  area.style.display='none';
+}
+
+/* ============== MASTER RENDER ============== */
+function render(){
+  const active = document.querySelector('.section.active').id;
+  if(active==='sec-dashboard') renderDashboard();
+  if(active==='sec-materia') renderMateria();
+  if(active==='sec-produccion') renderProduccion();
+  if(active==='sec-productos') renderProductos();
+  if(active==='sec-trazabilidad') renderTrazabilidad();
+  if(active==='sec-etiquetas') renderEtiquetas();
+}
+async function boot(){
+  if(!CFG.url||!CFG.key) return setupScreen();
+  try{ await api('getAll'); render(); }catch(e){ setupScreen('No se pudo conectar: '+e.message); }
+}
+boot();
+</script>
+</body>
+</html>
